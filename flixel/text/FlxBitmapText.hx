@@ -1,5 +1,6 @@
 package flixel.text;
 
+
 import openfl.display.BitmapData;
 import flixel.FlxBasic;
 import flixel.FlxG;
@@ -1406,6 +1407,23 @@ class FlxBitmapText extends FlxSprite
 					// lower-right
 					drawText(itd, itd, isFront, bitmap, useTiles);
 				}
+            
+            case OUTLINE_MINECRAFT:
+                // Render an outline around the text
+                // (do 8 offset draw calls)
+                var itd:Int = 0;
+                for (iter in 0...iterations)
+                {
+                    itd = delta * (iter + 1);
+                    // left
+                    drawText(-itd, 0, isFront, bitmap, useTiles);
+                    // right
+                    drawText(itd * 2, 0, isFront, bitmap, useTiles);
+                    // up
+                    drawText(-itd, -itd, isFront, bitmap, useTiles);
+                    // down
+                    drawText(0, itd * 2, isFront, bitmap, useTiles);
+                }
 			case OUTLINE_FAST:
 				// Render an outline around the text
 				// (do 4 diagonal offset draw calls)

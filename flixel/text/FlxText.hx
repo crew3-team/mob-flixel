@@ -20,6 +20,7 @@ import openfl.text.TextField;
 import openfl.text.TextFieldAutoSize;
 import openfl.text.TextFormat;
 import openfl.text.TextFormatAlign;
+import openfl.geom.Rectangle;
 
 using flixel.util.FlxStringUtil;
 using flixel.util.FlxUnicodeUtil;
@@ -102,6 +103,12 @@ class FlxText extends FlxSprite
 	 * Whether to use word wrapping and multiline or not (`true` by default).
 	 */
 	public var wordWrap(get, set):Bool;
+
+	/**
+	 * The vertical space between lines of text (in pixels). Default is 0.
+	 * This affects the spacing between lines when text wraps automatically or uses \n.
+	 */
+	public var lineSpacing(get, set):Int;
 
 	/**
 	 * The alignment of the font. Note: `autoSize` must be set to
@@ -187,6 +194,8 @@ class FlxText extends FlxSprite
 
 	var _hasBorderAlpha = false;
 
+	var _strikethroughRanges:Array<FlxTextFormatRange> = [];
+
 	#if flash
 	/**
 	 * Helper to draw line by line used at `drawTextFieldTo()`.
@@ -204,8 +213,9 @@ class FlxText extends FlxSprite
 	 * @param   Text           The actual text you would like to display initially.
 	 * @param   Size           The font size for this text object.
 	 * @param   EmbeddedFont   Whether this text field uses embedded fonts or not.
+	 * @param   LineSpacing    The vertical space between lines of text in pixels.
 	 */
-	public function new(X:Float = 0, Y:Float = 0, FieldWidth:Float = 0, ?Text:String, Size:Int = 8, EmbeddedFont:Bool = true)
+	public function new(X:Float = 0, Y:Float = 0, FieldWidth:Float = 0, ?Text:String, Size:Int = 8, EmbeddedFont:Bool = true, LineSpacing:Int = 0)
 	{
 		super(X, Y);
 
@@ -227,13 +237,15 @@ class FlxText extends FlxSprite
 		textField.wordWrap = true;
 		_defaultFormat = new TextFormat(null, Size, 0xffffff);
 		letterSpacing = 0;
+		_defaultFormat.leading = LineSpacing;
 		font = FlxAssets.FONT_DEFAULT;
 		_formatAdjusted = new TextFormat();
 		textField.defaultTextFormat = _defaultFormat;
 		textField.text = Text;
 		fieldWidth = FieldWidth;
 		textField.embedFonts = EmbeddedFont;
-		textField.sharpness = 100;
+
+		textField.sharpness = 400;
 		textField.height = (Text.length <= 0) ? 1 : 10;
 
 		allowCollisions = NONE;
@@ -254,6 +266,8 @@ class FlxText extends FlxSprite
 		_defaultFormat = null;
 		_formatAdjusted = null;
 		shadowOffset = FlxDestroyUtil.put(shadowOffset);
+		_strikethroughRanges = null;
+
 		super.destroy();
 	}
 
@@ -316,6 +330,8 @@ class FlxText extends FlxSprite
 			return this; // there's no point in running the big loop
 
 		clearFormats(); // start with default formatting
+
+		_strikethroughRanges = [];
 
 		var rangeStarts:Array<Int> = [];
 		var rangeEnds:Array<Int> = [];
@@ -405,11 +421,47 @@ class FlxText extends FlxSprite
 		// Apply the new text
 		text = input;
 
-		// Apply each format selectively to the given range
+		// Apply each format selectively to the given range // now with inheritance support of the og text format color -stev
 		for (i in 0...rangeStarts.length)
-			addFormat(rulesToApply[i].format, rangeStarts[i], rangeEnds[i]);
+		{
+			var curFormat = rulesToApply[i].format;
+			var start = rangeStarts[i];
+			var end = rangeEnds[i];
+
+			if (curFormat.format.color == null)
+			{
+				var existingFormat = getFormatAtPosition(start);
+
+				curFormat = FlxTextFormat.inherit(existingFormat, null, curFormat.format.bold, curFormat.format.italic, null, curFormat.format.underline,
+					curFormat.strikethrough);
+			}
+
+			addFormat(curFormat, start, end);
+		}
 
 		return this;
+	}
+
+	function getFormatAtPosition(position:Int):FlxTextFormat
+	{
+		for (formatRange in _formatRanges)
+		{
+			var range = formatRange.range;
+			var start = range.start == -1 ? 0 : range.start;
+			var end = range.end == -1 ? text.length : range.end;
+
+			if (position >= start && position < end)
+			{
+				if (formatRange.format.format.color != null)
+					return formatRange.format;
+			}
+		}
+
+		var defaultColor = _defaultFormat.color != null ? _defaultFormat.color : FlxColor.WHITE;
+		var defaultBorderColor = borderStyle != NONE ? borderColor : FlxColor.TRANSPARENT;
+
+		var defaultFlxFormat = new FlxTextFormat(defaultColor, null, null, defaultBorderColor);
+		return defaultFlxFormat;
 	}
 
 	/**
@@ -422,6 +474,12 @@ class FlxText extends FlxSprite
 	public function addFormat(Format:FlxTextFormat, Start:Int = -1, End:Int = -1):FlxText
 	{
 		_formatRanges.push(new FlxTextFormatRange(Format, Start, End));
+
+		if (Format.strikethrough)
+		{
+			_strikethroughRanges.push(new FlxTextFormatRange(Format, Start, End));
+		}
+
 		// sort the array using the start value of the format so we can skip formats that can't be applied to the textField
 		_formatRanges.sort(function(left, right)
 		{
@@ -430,6 +488,205 @@ class FlxText extends FlxSprite
 		_regen = true;
 
 		return this;
+	}
+
+	/**
+	 * makes strikethrough lines directly on the text bitmap for all strikethrough ranges
+	 */
+	function drawStrikethroughLines():Void
+	{
+		if (_strikethroughRanges.length == 0 || text == null || text.length == 0 || graphic == null)
+			return;
+
+		var lineHeight = textField.getLineMetrics(0).height;
+		var strikeY = Std.int(lineHeight * 0.65);
+
+		for (strikeRange in _strikethroughRanges)
+		{
+			var range = strikeRange.range;
+			var start = range.start == -1 ? 0 : range.start;
+			var end = range.end == -1 ? text.length : range.end;
+
+			if (start >= end || start >= text.length)
+				continue;
+
+			var currentPos = start;
+			while (currentPos < end)
+			{
+				var lineIndex = textField.getLineIndexOfChar(currentPos);
+				if (lineIndex == -1)
+					break;
+
+				var lineStart = textField.getLineOffset(lineIndex);
+				var lineEnd = lineIndex < textField.numLines - 1 ? textField.getLineOffset(lineIndex + 1) - 1 : text.length;
+
+				var segmentStart = Std.int(Math.max(currentPos, lineStart));
+				var segmentEnd = Std.int(Math.min(end, lineEnd));
+
+				if (segmentStart < segmentEnd)
+				{
+					var segmentPos = segmentStart;
+					var currentX = Std.int(getTextWidth(text.substring(lineStart, segmentStart), null, lineStart, segmentStart));
+
+					while (segmentPos < segmentEnd)
+					{
+						var nextColorChange = segmentEnd;
+
+						var currentColor:Null<UInt> = null;
+						var i = _formatRanges.length - 1;
+						while (i >= 0)
+						{
+							var formatRange = _formatRanges[i];
+							var rangeStart = formatRange.range.start == -1 ? 0 : formatRange.range.start;
+							var rangeEnd = formatRange.range.end == -1 ? text.length : formatRange.range.end;
+
+							if (segmentPos >= rangeStart && segmentPos < rangeEnd && formatRange.format.format.color != null)
+							{
+								currentColor = formatRange.format.format.color;
+								break;
+							}
+							i--;
+						}
+						if (currentColor == null)
+							currentColor = _defaultFormat.color != null ? _defaultFormat.color : FlxColor.WHITE;
+
+						for (pos in (segmentPos + 1)...segmentEnd)
+						{
+							var posColor:Null<UInt> = null;
+							var j = _formatRanges.length - 1;
+							while (j >= 0)
+							{
+								var formatRange = _formatRanges[j];
+								var rangeStart = formatRange.range.start == -1 ? 0 : formatRange.range.start;
+								var rangeEnd = formatRange.range.end == -1 ? text.length : formatRange.range.end;
+
+								if (pos >= rangeStart && pos < rangeEnd && formatRange.format.format.color != null)
+								{
+									posColor = formatRange.format.format.color;
+									break;
+								}
+								j--;
+							}
+							if (posColor == null)
+								posColor = _defaultFormat.color != null ? _defaultFormat.color : FlxColor.WHITE;
+
+							if (posColor != currentColor)
+							{
+								nextColorChange = pos;
+								break;
+							}
+						}
+
+						var subSegmentFormat = getCombinedFormatForRange(segmentPos, nextColorChange);
+						var subSegmentColor:FlxColor = subSegmentFormat.color != null ? subSegmentFormat.color : (_defaultFormat.color != null ? _defaultFormat.color : FlxColor.WHITE);
+						var subSegmentColorValue:UInt = (subSegmentColor & 0x00FFFFFF) | 0xFF000000;
+
+						var subSegmentText = text.substring(segmentPos, nextColorChange);
+						var subSegmentWidth = Std.int(getTextWidthWithFormat(subSegmentText, subSegmentFormat));
+
+						var currentLineY = Std.int(lineIndex * lineHeight + strikeY);
+						var lineRect = new Rectangle(currentX - 3, currentLineY, subSegmentWidth + 5, 3);
+						graphic.bitmap.fillRect(lineRect, subSegmentColorValue);
+
+						trace('Text: "$subSegmentText", Width: $subSegmentWidth, Format: $subSegmentFormat');
+						currentX += subSegmentWidth;
+						segmentPos = nextColorChange;
+					}
+				}
+
+				currentPos = lineEnd + 1;
+			}
+		}
+	}
+
+	function getCombinedFormatForRange(start:Int, end:Int):TextFormat
+	{
+		var combinedFormat = new TextFormat();
+		copyTextFormat(_defaultFormat, combinedFormat);
+
+		for (formatRange in _formatRanges)
+		{
+			var rangeStart = formatRange.range.start == -1 ? 0 : formatRange.range.start;
+			var rangeEnd = formatRange.range.end == -1 ? text.length : formatRange.range.end;
+
+			if (rangeStart < end && rangeEnd > start)
+			{
+				var format = formatRange.format.format;
+				if (format.bold != null)
+					combinedFormat.bold = format.bold;
+				if (format.italic != null)
+					combinedFormat.italic = format.italic;
+				if (format.underline != null)
+					combinedFormat.underline = format.underline;
+				if (format.color != null)
+					combinedFormat.color = format.color;
+				if (format.size != null)
+					combinedFormat.size = format.size;
+			}
+		}
+
+		return combinedFormat;
+	}
+
+	function getTextWidth(text:String, ?format:FlxTextFormat, ?startIndex:Int, ?endIndex:Int):Float
+	{
+		if (text == null || text.length == 0)
+		{
+			return 0;
+		}
+
+		var tempField = new TextField();
+
+		if (startIndex != null && endIndex != null)
+		{
+			tempField.defaultTextFormat = _defaultFormat;
+			tempField.text = text;
+			tempField.autoSize = TextFieldAutoSize.LEFT;
+
+			for (range in _formatRanges)
+			{
+				var rangeStart = Std.int(Math.max(range.range.start, startIndex));
+				var rangeEnd = Std.int(Math.min(range.range.end, endIndex));
+
+				if (rangeStart < rangeEnd)
+				{
+					tempField.setTextFormat(range.format.format, rangeStart - startIndex, rangeEnd - startIndex);
+				}
+			}
+		}
+		else
+		{
+			var textFormat:TextFormat;
+			if (format == null)
+			{
+				textFormat = _defaultFormat;
+			}
+			else
+			{
+				textFormat = format.format;
+			}
+
+			tempField.defaultTextFormat = textFormat;
+			tempField.text = text;
+			tempField.autoSize = TextFieldAutoSize.LEFT;
+		}
+
+		return tempField.textWidth;
+	}
+
+	function getTextWidthWithFormat(text:String, format:TextFormat):Float
+	{
+		if (text == null || text.length == 0)
+		{
+			return 0;
+		}
+
+		var tempField = new TextField();
+		tempField.defaultTextFormat = format;
+		tempField.text = text;
+		tempField.autoSize = TextFieldAutoSize.LEFT;
+
+		return tempField.textWidth;
 	}
 
 	/**
@@ -500,10 +757,11 @@ class FlxText extends FlxSprite
 	 * @param	BorderStyle		Which border style to use
 	 * @param	BorderColor 	Color for the border, `0xAARRGGBB` format
 	 * @param	EmbeddedFont	Whether this text field uses embedded fonts or not
+	 * @param	LineSpacing		The vertical space between lines of text in pixels
 	 * @return	This `FlxText` instance (nice for chaining stuff together, if you're into that).
 	 */
 	public function setFormat(?Font:String, Size:Int = 8, Color:FlxColor = FlxColor.WHITE, ?Alignment:FlxTextAlign, ?BorderStyle:FlxTextBorderStyle,
-			BorderColor:FlxColor = FlxColor.TRANSPARENT, EmbeddedFont:Bool = true):FlxText
+			BorderColor:FlxColor = FlxColor.TRANSPARENT, EmbeddedFont:Bool = true, LineSpacing:Int = 0):FlxText
 	{
 		BorderStyle = (BorderStyle == null) ? NONE : BorderStyle;
 
@@ -520,6 +778,7 @@ class FlxText extends FlxSprite
 		color = Color;
 		if (Alignment != null)
 			alignment = Alignment;
+		lineSpacing = LineSpacing;
 		setBorderStyle(BorderStyle, BorderColor);
 
 		updateDefaultFormat();
@@ -790,6 +1049,21 @@ class FlxText extends FlxSprite
 		return Alignment;
 	}
 
+	inline function get_lineSpacing():Int
+	{
+		return Std.int(_defaultFormat.leading);
+	}
+
+	function set_lineSpacing(value:Int):Int
+	{
+		if (_defaultFormat.leading != value)
+		{
+			_defaultFormat.leading = value;
+			updateDefaultFormat();
+		}
+		return value;
+	}
+
 	function set_borderStyle(style:FlxTextBorderStyle):FlxTextBorderStyle
 	{
 		if (style != borderStyle)
@@ -931,6 +1205,8 @@ class FlxText extends FlxSprite
 
 			drawTextFieldTo(graphic.bitmap);
 		}
+
+		drawStrikethroughLines();
 
 		_regen = false;
 		resetFrame();
@@ -1074,6 +1350,29 @@ class FlxText extends FlxSprite
 					curDelta += delta;
 				}
 
+			case OUTLINE_MINECRAFT:
+				// Render an outline around the text
+				// (do 4 non diagonal offset draw calls)
+				// (im doing this for our minecraft usecase LOL)
+				applyFormats(_formatAdjusted, true);
+
+				var curDelta:Float = delta;
+				var graphic:BitmapData = _hasBorderAlpha ? _borderPixels : graphic.bitmap;
+				for (i in 0...iterations)
+				{
+					_matrix.translate(-curDelta, 0); // left
+					drawTextFieldTo(graphic);
+					_matrix.translate(curDelta * 2, 0); // right
+					drawTextFieldTo(graphic);
+					_matrix.translate(-curDelta, -curDelta); // UP (back to the center of x and up lol)
+					drawTextFieldTo(graphic);
+					_matrix.translate(0, curDelta * 2); // down
+					drawTextFieldTo(graphic);
+
+					_matrix.translate(0, -curDelta); // return to center
+					curDelta += delta;
+				}
+
 			case OUTLINE_FAST:
 				// Render an outline around the text
 				// (do 4 diagonal offset draw calls)
@@ -1214,19 +1513,55 @@ class FlxTextFormat
 	 */
 	var borderColor:FlxColor;
 
-	var format(default, null):TextFormat;
+	public var format(default, null):TextFormat;
 
 	/**
-	 * @param   fontColor     Font color, in `0xRRGGBB` format. Inherits from the default format by default.
-	 * @param   bold          Whether the text should be bold (must be supported by the font). `false` by default.
-	 * @param   italic        Whether the text should be in italics (must be supported by the font). Only works on Flash. `false` by default.
-	 * @param   borderColor   Border color, in `0xAARRGGBB` format. By default, no border (`null` / transparent).
-	 * @param   underline     Whether the text should be underlined. `false` by default.
+	 * Whether the text should have strikethrough. `false` by default.
 	 */
-	public function new(?fontColor:FlxColor, ?bold:Bool, ?italic:Bool, ?borderColor:FlxColor, ?underline:Bool)
+	public var strikethrough:Bool = false;
+
+	/**
+	 * @param   FontColor     Font color, in `0xRRGGBB` format. Inherits from the default format by default.
+	 * @param   Bold          Whether the text should be bold (must be supported by the font). `false` by default.
+	 * @param   Italic        Whether the text should be in italics (must be supported by the font). Only works on Flash. `false` by default.
+	 * @param   BorderColor   Border color, in `0xAARRGGBB` format. By default, no border (`null` / transparent).
+	 * @param   Underline     Whether the text should be underlined. `false` by default.
+	 * @param   Strikethrough Whether the text should have strikethrough. `false` by default.
+	 */
+	public function new(?FontColor:FlxColor, ?Bold:Bool, ?Italic:Bool, ?BorderColor:FlxColor, ?underline:Bool, ?Strikethrough:Bool)
 	{
-		format = new TextFormat(null, null, fontColor, bold, italic, underline);
-		this.borderColor = borderColor == null ? FlxColor.TRANSPARENT : borderColor;
+		format = new TextFormat(null, null, FontColor, Bold, Italic, underline); // done stealing
+		borderColor = BorderColor == null ? FlxColor.TRANSPARENT : BorderColor;
+		strikethrough = Strikethrough == null ? false : Strikethrough;
+	}
+
+	public static function inherit(baseFormat:FlxTextFormat, ?FontColor:FlxColor, ?Bold:Bool, ?Italic:Bool, ?BorderColor:FlxColor, ?underline:Bool,
+			?Strikethrough:Bool):FlxTextFormat
+	{
+		var newFormat = new FlxTextFormat();
+
+		newFormat.format.color = baseFormat.format.color;
+		newFormat.format.bold = baseFormat.format.bold;
+		newFormat.format.italic = baseFormat.format.italic;
+		newFormat.format.underline = baseFormat.format.underline;
+		newFormat.borderColor = baseFormat.borderColor;
+		newFormat.format.leading = baseFormat.format.leading;
+		newFormat.strikethrough = baseFormat.strikethrough;
+
+		if (FontColor != null)
+			newFormat.format.color = FontColor;
+		if (Bold != null)
+			newFormat.format.bold = Bold;
+		if (Italic != null)
+			newFormat.format.italic = Italic;
+		if (BorderColor != null)
+			newFormat.borderColor = BorderColor;
+		if (underline != null)
+			newFormat.format.underline = underline;
+		if (Strikethrough != null)
+			newFormat.strikethrough = Strikethrough;
+
+		return newFormat;
 	}
 
 	function set_leading(value:Int):Int
@@ -1274,6 +1609,11 @@ enum FlxTextBorderStyle
 	 * Outline on all 8 sides
 	 */
 	OUTLINE;
+
+	/**
+	 * Outline on 4 sides (TOP, LEFT, RIGHT, DOWN)
+	 */
+	OUTLINE_MINECRAFT;
 
 	/**
 	 * Outline, optimized using only 4 draw calls (might not work for narrow and/or 1-pixel fonts)
