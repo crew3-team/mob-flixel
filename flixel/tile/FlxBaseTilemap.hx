@@ -1001,17 +1001,11 @@ class FlxBaseTilemap<Tile:FlxObject> extends FlxObject
 	@:access(flixel.group.FlxTypedGroup)
 	override public function overlapsAt(x:Float, y:Float, objectOrGroup:FlxBasic, inScreenSpace:Bool = false, ?camera:FlxCamera):Bool
 	{
-		var group = FlxTypedGroup.resolveGroup(objectOrGroup);
+		final group = FlxTypedGroup.resolveGroup(objectOrGroup);
 		if (group != null) // if it is a group
-		{
-			return FlxTypedGroup.overlaps(tilemapOverlapsAtCallback, group, x, y, inScreenSpace, camera);
-		}
-		else if (tilemapOverlapsAtCallback(objectOrGroup, x, y, inScreenSpace, camera))
-		{
-			return true;
-		}
-
-		return false;
+			return group.any(tilemapOverlapsAtCallback.bind(_, x, y, inScreenSpace, camera));
+		
+		return tilemapOverlapsAtCallback(objectOrGroup, x, y, inScreenSpace, camera);
 	}
 
 	inline function tilemapOverlapsAtCallback(objectOrGroup:FlxBasic, x:Float, y:Float, inScreenSpace:Bool, camera:FlxCamera):Bool

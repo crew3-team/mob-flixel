@@ -1,8 +1,8 @@
 package flixel.system.debug;
 
 #if FLX_DEBUG
-import flash.display.BitmapData;
-import flash.text.TextField;
+import openfl.display.BitmapData;
+import openfl.text.TextField;
 import flixel.FlxG;
 import flixel.system.ui.FlxSystemButton;
 import flixel.system.debug.FlxDebugger.GraphicArrowRight;
@@ -10,26 +10,26 @@ import flixel.system.debug.FlxDebugger.GraphicArrowRight;
 import flixel.util.FlxStringUtil;
 #end
 
-@:bitmap("assets/images/debugger/buttons/open.png")
-private class GraphicOpen extends BitmapData {}
+#if FLX_DEBUG @:bitmap("assets/images/debugger/buttons/open.png") #end
+class GraphicOpen extends BitmapData {}
 
-@:bitmap("assets/images/debugger/buttons/pause.png")
-private class GraphicPause extends BitmapData {}
+#if FLX_DEBUG @:bitmap("assets/images/debugger/buttons/pause.png") #end
+class GraphicPause extends BitmapData {}
 
-@:bitmap("assets/images/debugger/buttons/record_off.png")
-private class GraphicRecordOff extends BitmapData {}
+#if FLX_DEBUG @:bitmap("assets/images/debugger/buttons/record_off.png") #end
+class GraphicRecordOff extends BitmapData {}
 
-@:bitmap("assets/images/debugger/buttons/record_on.png")
-private class GraphicRecordOn extends BitmapData {}
+#if FLX_DEBUG @:bitmap("assets/images/debugger/buttons/record_on.png") #end
+class GraphicRecordOn extends BitmapData {}
 
-@:bitmap("assets/images/debugger/buttons/restart.png")
-private class GraphicRestart extends BitmapData {}
+#if FLX_DEBUG @:bitmap("assets/images/debugger/buttons/restart.png") #end
+class GraphicRestart extends BitmapData {}
 
-@:bitmap("assets/images/debugger/buttons/step.png")
-private class GraphicStep extends BitmapData {}
+#if FLX_DEBUG @:bitmap("assets/images/debugger/buttons/step.png") #end
+class GraphicStep extends BitmapData {}
 
-@:bitmap("assets/images/debugger/buttons/stop.png")
-private class GraphicStop extends BitmapData {}
+#if FLX_DEBUG @:bitmap("assets/images/debugger/buttons/stop.png") #end
+class GraphicStop extends BitmapData {}
 
 /**
  * This class contains the record, stop, play, and step 1 frame buttons seen on the top edge of the debugger overlay.

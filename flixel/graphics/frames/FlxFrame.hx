@@ -1,8 +1,9 @@
 package flixel.graphics.frames;
 
-import flash.display.BitmapData;
-import flash.geom.Point;
-import flash.geom.Rectangle;
+import flixel.FlxTypes;
+import openfl.display.BitmapData;
+import openfl.geom.Point;
+import openfl.geom.Rectangle;
 import flixel.graphics.FlxGraphic;
 import flixel.math.FlxMatrix;
 import flixel.math.FlxPoint;
@@ -18,10 +19,10 @@ import haxe.ds.Vector;
  */
 class FlxFrame implements IFlxDestroyable
 {
-	var point1:Point = new Point();
-	var point2:Point = new Point();
-	var rect:Rectangle = new Rectangle();
-	var matrix:FlxMatrix = new FlxMatrix();
+	static var point1:Point = new Point();
+	static var point2:Point = new Point();
+	static var rect:Rectangle = new Rectangle();
+	static var matrix:FlxMatrix = new FlxMatrix();
 
 	/**
 	 * Sorts an array of `FlxFrame` objects by their name, e.g.
@@ -380,22 +381,19 @@ class FlxFrame implements IFlxDestroyable
 	inline function checkInputBitmap(?bmd:BitmapData, ?point:Point, rotation:FlxFrameAngle = FlxFrameAngle.ANGLE_0, mergeAlpha:Bool = false,
 			disposeIfNotEqual:Bool = false):BitmapData
 	{
-		var w:Int = Std.int(sourceSize.x);
-		var h:Int = Std.int(sourceSize.y);
-
-		if (rotation != FlxFrameAngle.ANGLE_0)
-		{
-			var t:Int = w;
-			w = h;
-			h = t;
-		}
+		final flipXY = rotation != FlxFrameAngle.ANGLE_0;
+		final w = Std.int(flipXY ? sourceSize.y : sourceSize.x);
+		final h = Std.int(flipXY ? sourceSize.x : sourceSize.y);
 
 		if (bmd != null && disposeIfNotEqual)
 			bmd = FlxDestroyUtil.disposeIfNotEqual(bmd, w, h);
 
 		if (bmd != null && !mergeAlpha)
 		{
-			rect.setTo(point.x, point.y, w, h);
+			if (point != null)
+				rect.setTo(point.x, point.y, w, h);
+			else
+				rect.setTo(0, 0, w, h);
 			bmd.fillRect(rect, FlxColor.TRANSPARENT);
 		}
 		else if (bmd == null)
@@ -683,16 +681,14 @@ class FlxFrame implements IFlxDestroyable
  * Just enumeration of all types of frames.
  * Added for faster type detection with less usage of casting.
  */
-@:enum
-abstract FlxFrameType(Int)
+enum abstract FlxFrameType(ByteInt)
 {
 	var REGULAR = 0;
 	var EMPTY = 2;
 	var GLYPH = 3;
 }
 
-@:enum
-abstract FlxFrameAngle(Int) from Int to Int
+enum abstract FlxFrameAngle(ByteInt) from ByteInt to ByteInt
 {
 	var ANGLE_0 = 0;
 	var ANGLE_90 = 90;

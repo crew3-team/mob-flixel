@@ -1,6 +1,6 @@
 package flixel.ui;
 
-import flash.events.MouseEvent;
+import openfl.events.MouseEvent;
 import flixel.FlxG;
 import flixel.FlxSprite;
 import flixel.graphics.atlas.FlxAtlas;
@@ -631,7 +631,7 @@ class FlxTypedButton<T:FlxSprite> extends FlxSprite implements IFlxInput
 /** 
  * Helper function for `FlxButton` which handles its events.
  */
-private class FlxButtonEvent implements IFlxDestroyable
+class FlxButtonEvent implements IFlxDestroyable
 {
 	/**
 	 * The callback function to call when this even fires.

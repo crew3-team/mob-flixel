@@ -1,23 +1,23 @@
 package flixel.system;
 
-import flash.Lib;
-import flash.display.Bitmap;
-import flash.display.BitmapData;
-import flash.display.GradientType;
-import flash.display.GraphicsPathWinding;
-import flash.display.Shape;
-import flash.display.Sprite;
-import flash.display.StageAlign;
-import flash.display.StageScaleMode;
-import flash.events.Event;
-import flash.events.ProgressEvent;
-import flash.events.MouseEvent;
-import flash.geom.Matrix;
-import flash.geom.Rectangle;
-import flash.net.URLRequest;
-import flash.text.TextField;
-import flash.text.TextFormat;
-import flash.text.TextFormatAlign;
+import openfl.Lib;
+import openfl.display.Bitmap;
+import openfl.display.BitmapData;
+import openfl.display.GradientType;
+import openfl.display.GraphicsPathWinding;
+import openfl.display.Shape;
+import openfl.display.Sprite;
+import openfl.display.StageAlign;
+import openfl.display.StageScaleMode;
+import openfl.events.Event;
+import openfl.events.ProgressEvent;
+import openfl.events.MouseEvent;
+import openfl.geom.Matrix;
+import openfl.geom.Rectangle;
+import openfl.net.URLRequest;
+import openfl.text.TextField;
+import openfl.text.TextFormat;
+import openfl.text.TextFormatAlign;
 import flixel.util.FlxColor;
 import flixel.util.FlxStringUtil;
 import openfl.Vector;
@@ -411,7 +411,7 @@ class FlxBasePreloader extends DefaultPreloader
 
 #if (openfl >= "8.0.0")
 // This is a slightly trimmed down version of the NMEPreloader present in older OpenFL versions
-private class DefaultPreloader extends Sprite
+class DefaultPreloader extends Sprite
 {
 	public function new()
 	{
@@ -464,5 +464,5 @@ private class DefaultPreloader extends Sprite
 	}
 }
 #else
-private typedef DefaultPreloader = NMEPreloader;
+typedef DefaultPreloader = NMEPreloader;
 #end

@@ -1,12 +1,12 @@
 package flixel.system.debug.interaction;
 
-import flash.display.BitmapData;
-import flash.display.Graphics;
-import flash.display.Sprite;
-import flash.display.DisplayObject;
-import flash.events.KeyboardEvent;
+import openfl.display.BitmapData;
+import openfl.display.Graphics;
+import openfl.display.Sprite;
+import openfl.display.DisplayObject;
+import openfl.events.KeyboardEvent;
 import flixel.FlxObject;
-import flash.events.MouseEvent;
+import openfl.events.MouseEvent;
 import flixel.group.FlxGroup.FlxTypedGroup;
 import flixel.input.FlxPointer;
 import flixel.math.FlxPoint;
@@ -21,7 +21,12 @@ import flixel.system.debug.interaction.tools.Tool;
 import flixel.util.FlxDestroyUtil;
 import flixel.util.FlxSpriteUtil;
 #if !(FLX_NATIVE_CURSOR && FLX_MOUSE)
-import flash.display.Bitmap;
+import openfl.display.Bitmap;
+#end
+#if (haxe_ver >= 4.2)
+import Std.isOfType;
+#else
+import Std.is as isOfType;
 #end
 
 /**
@@ -47,6 +52,18 @@ class Interaction extends Window
 	 * selection marks, for instance.
 	 */
 	public var shouldDrawItemsSelection:Bool = true;
+
+	/**
+	 * Whether or not the user is using a mac keyboard, determines whether to use command or ctrl
+	 */
+	public final macKeyboard:Bool =
+		#if mac
+		true;
+		#elseif (js && html5)
+		untyped js.Syntax.code("/AppleWebKit/.test (navigator.userAgent) && /Mobile\\/\\w+/.test (navigator.userAgent) || /Mac/.test (navigator.platform)");
+		#else
+		false;
+		#end
 
 	var _container:Sprite;
 	var _customCursor:Sprite;
@@ -342,7 +359,7 @@ class Interaction extends Window
 	public function getTool(className:Class<Tool>):Tool
 	{
 		for (tool in _tools)
-			if (Std.isOfType(tool, className))
+			if (isOfType(tool, className))
 				return tool;
 		return null;
 	}

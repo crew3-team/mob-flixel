@@ -10,8 +10,6 @@ import flixel.util.FlxSignal.FlxTypedSignal;
  * It is for all intents and purpose a fancy `FlxGroup`. And really, it's not even that fancy.
  */
 @:keepSub // workaround for HaxeFoundation/haxe#3749
-@:autoBuild(flixel.system.macros.FlxMacroUtil.deprecateOverride("switchTo", "switchTo is deprecated, use startOutro"))
-// show deprecation warning when `switchTo` is overriden in dereived classes
 class FlxState extends FlxGroup
 {
 	/**
@@ -38,6 +36,16 @@ class FlxState extends FlxGroup
 	 * `false` might reduce state creation time, at greater memory cost.
 	 */
 	public var destroySubStates:Bool = true;
+
+	/**
+	 * Tracker for whenever the state has already been created.
+	 */
+	public var created:Bool = false;
+
+	/**
+	 * Tracker for whenever the state has already been post-created.
+	 */
+	public var postCreated:Bool = false;
 
 	/**
 	 * The natural background color the cameras default to. In `AARRGGBB` format.
@@ -81,14 +89,17 @@ class FlxState extends FlxGroup
 
 	@:noCompletion
 	var _subStateClosed:FlxTypedSignal<FlxSubState->Void>;
-    
+
 	/**
 	 * This function is called after the game engine successfully switches states.
 	 * Override this function, NOT the constructor, to initialize or set up your game state.
 	 * We do NOT recommend initializing any flixel objects or utilizing flixel features in
 	 * the constructor, unless you want some crazy unpredictable things to happen!
 	 */
-	public function create():Void {}
+	public function create():Void
+	{
+		created = true;
+	}
 
 	override public function draw():Void
 	{
@@ -111,6 +122,14 @@ class FlxState extends FlxGroup
 	public function closeSubState():Void
 	{
 		_requestSubStateReset = true;
+	}
+
+	/**
+	 * Called at the very end of the state creation process.
+	 */
+	public function createPost():Void
+	{
+		postCreated = true;
 	}
 
 	/**
@@ -142,13 +161,19 @@ class FlxState extends FlxGroup
 
 			subState._parentState = this;
 
-			if (!subState._created)
+			var didCreate = false;
+
+			if (didCreate = !subState._created)
 			{
 				subState._created = true;
 				subState.create();
 			}
 			if (subState.openCallback != null)
 				subState.openCallback();
+
+			if (didCreate)
+				subState.createPost();
+
 			if (_subStateOpened != null)
 				_subStateOpened.dispatch(subState);
 		}
@@ -158,7 +183,7 @@ class FlxState extends FlxGroup
 	{
 		FlxDestroyUtil.destroy(_subStateOpened);
 		FlxDestroyUtil.destroy(_subStateClosed);
-        
+
 		if (subState != null)
 		{
 			subState.destroy();
@@ -173,37 +198,30 @@ class FlxState extends FlxGroup
 	 *
 	 * Useful for customizing state switches, e.g. for transition effects.
 	 */
-	@:deprecated("switchTo is deprecated, use startOutro")
 	public function switchTo(nextState:FlxState):Bool
 	{
 		return true;
-	}
-	
-	/**
-	 * Called from `FlxG.switchState()`, when `onOutroComplete` is called, the actual state
-	 * switching will happen.
-	 * 
-	 * Note: Calling `super.startOutro(onOutroComplete)` will call `onOutroComplete`.
-	 * 
-	 * @param   onOutroComplete  Called when the outro is complete.
-	 * @since 5.3.0
-	 */
-	public function startOutro(onOutroComplete:()->Void)
-	{
-		onOutroComplete();
 	}
 
 	/**
 	 * This method is called after the game loses focus.
 	 * Can be useful for third party libraries, such as tweening engines.
 	 */
-	public function onFocusLost():Void {}
+	public function onFocusLost():Void
+	{
+		if (subState != null)
+			subState.onFocusLost();
+	}
 
 	/**
 	 * This method is called after the game receives focus.
 	 * Can be useful for third party libraries, such as tweening engines.
 	 */
-	public function onFocus():Void {}
+	public function onFocus():Void
+	{
+		if (subState != null)
+			subState.onFocus();
+	}
 
 	/**
 	 * This function is called whenever the window size has been changed.
@@ -211,7 +229,11 @@ class FlxState extends FlxGroup
 	 * @param   Width    The new window width
 	 * @param   Height   The new window Height
 	 */
-	public function onResize(Width:Int, Height:Int):Void {}
+	public function onResize(Width:Int, Height:Int):Void
+	{
+		if (subState != null)
+			subState.onResize(Width, Height);
+	}
 
 	@:allow(flixel.FlxGame)
 	function tryUpdate(elapsed:Float):Void
@@ -241,7 +263,7 @@ class FlxState extends FlxGroup
 	{
 		return FlxG.cameras.bgColor = Value;
 	}
-    
+
 	@:noCompletion
 	function get_subStateOpened():FlxTypedSignal<FlxSubState->Void>
 	{

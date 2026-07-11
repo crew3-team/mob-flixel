@@ -2,11 +2,13 @@ package flixel.system;
 
 import haxe.macro.Expr;
 #if !macro
-import flash.display.BitmapData;
-import flash.display.Graphics;
-import flash.media.Sound;
+import openfl.display.BitmapData;
+import openfl.display.Graphics;
+import openfl.media.Sound;
 import flixel.FlxG;
 import flixel.graphics.FlxGraphic;
+import flixel.graphics.atlas.AseAtlas;
+import flixel.graphics.atlas.TexturePackerAtlas;
 import flixel.graphics.frames.FlxAtlasFrames;
 import flixel.graphics.frames.FlxFrame;
 import flixel.graphics.frames.FlxFramesCollection;
@@ -30,8 +32,8 @@ class GraphicVirtualInput extends BitmapData {}
 class VirtualInputData extends #if (lime_legacy || nme) ByteArray #else ByteArrayData #end {}
 
 typedef FlxAngelCodeXmlAsset = FlxXmlAsset;
-typedef FlxTexturePackerJsonAsset = FlxJsonAsset<TexturePackerObject>;
-typedef FlxAsepriteJsonAsset = FlxTexturePackerJsonAsset;
+typedef FlxTexturePackerJsonAsset = FlxJsonAsset<TexturePackerAtlas>;
+typedef FlxAsepriteJsonAsset = FlxJsonAsset<AseAtlas>;
 typedef FlxSoundAsset = OneOfThree<String, Sound, Class<Sound>>;
 typedef FlxGraphicAsset = OneOfThree<FlxGraphic, BitmapData, String>;
 typedef FlxGraphicSource = OneOfThree<BitmapData, Class<Dynamic>, String>;
@@ -98,14 +100,7 @@ abstract FlxJsonAsset<T>(OneOfTwo<T, String>) from T from String
 	}
 }
 
-typedef FlxShader =
-	#if (openfl_legacy || nme)
-	Dynamic;
-	#elseif FLX_DRAW_QUADS
-	flixel.graphics.tile.FlxGraphicsShader;
-	#else
-	openfl.display.Shader;
-	#end
+typedef FlxShader = #if nme Dynamic #else flixel.graphics.tile.FlxGraphicsShader #end;
 #end
 
 class FlxAssets
@@ -181,7 +176,7 @@ class FlxAssets
 	}
 
 	#if !doc_gen
-	private static function exprToRegex(expr:Expr):EReg
+	static function exprToRegex(expr:Expr):EReg
 	{
 		switch (expr.expr)
 		{

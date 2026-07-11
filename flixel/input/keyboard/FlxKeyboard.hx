@@ -1,7 +1,7 @@
 package flixel.input.keyboard;
 
 #if FLX_KEYBOARD
-import flash.events.KeyboardEvent;
+import openfl.events.KeyboardEvent;
 import flixel.FlxG;
 import flixel.input.FlxInput;
 import flixel.system.replay.CodeValuePair;
@@ -91,6 +91,7 @@ class FlxKeyboard extends FlxKeyManager<FlxKey, FlxKeyList>
 		_nativeCorrection.set("47_79", FlxKey.SLASH);
 		_nativeCorrection.set("46_78", FlxKey.NUMPADPERIOD);
 		_nativeCorrection.set("42_74", FlxKey.NUMPADMULTIPLY);
+		_nativeCorrection.set("0_43", FlxKey.PLUS); // Fix pressing + on mac, hopefully nothing breaks
 		#end
 	}
 

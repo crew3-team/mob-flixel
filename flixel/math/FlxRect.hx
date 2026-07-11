@@ -1,6 +1,6 @@
 package flixel.math;
 
-import flash.geom.Rectangle;
+import openfl.geom.Rectangle;
 import flixel.util.FlxPool;
 import flixel.util.FlxPool.IFlxPooled;
 import flixel.util.FlxStringUtil;
@@ -236,6 +236,31 @@ class FlxRect implements IFlxPooled
 	}
 
 	/**
+	 * Resizes `this` instance so that it fits within the intersection of the this and
+	 * the target rect. If there is no overlap between them, The result is an empty rect.
+	 *
+	 * @param   rect    Rectangle to check intersection against
+	 * @return  This rect, useful for chaining
+	 * @since 5.9.0
+	 */
+	public function clipTo(rect:FlxRect):FlxRect
+	{
+		return rect.intersection(this, this);
+	}
+
+	/**
+	 * Returns true if this FlxRect contains the FlxPoint
+	 *
+	 * @param   xPos  The x position to check
+	 * @param   yPos  The y position to check
+	 * @return  True if the FlxPoint is within this FlxRect, otherwise false
+	 */
+	public inline function containsXY(xPos:Float, yPos:Float):Bool
+	{
+		return xPos >= left && xPos <= right && yPos >= top && yPos <= bottom;
+	}
+
+	/**
 	 * Add another rectangle to this one by filling in the
 	 * horizontal and vertical space between the two rectangles.
 	 *
@@ -329,8 +354,8 @@ class FlxRect implements IFlxPooled
 
 	public inline function offset(dx:Float, dy:Float):FlxRect
 	{
-		x += dx;
-		y += dy;
+		x = x + dx;
+		y = y + dy;
 		return this;
 	}
 
@@ -341,35 +366,41 @@ class FlxRect implements IFlxPooled
 	 *                if `null` , the top-left (or 0,0) is used.
 	 * @param newRect Optional output `FlxRect`, if `null`, a new one is created. Note: If you like, you can
 	 *                pass in the input rect to manipulate it. ex: `rect.calcRotatedBounds(angle, null, rect)`
+	 * @param innerOffset Inner offset.
 	 * @return A globally aligned `FlxRect` that fully contains the input rectangle.
 	 * @since 4.11.0
 	 */
-	public function getRotatedBounds(degrees:Float, ?origin:FlxPoint, ?newRect:FlxRect):FlxRect
+	public function getRotatedBounds(degrees:Float, ?origin:FlxPoint, ?newRect:FlxRect, ?innerOffset:FlxPoint):FlxRect
 	{
 		if (origin == null)
 			origin = FlxPoint.weak(0, 0);
-		
+
 		if (newRect == null)
 			newRect = FlxRect.get();
-		
+
+		if (innerOffset == null)
+			innerOffset = FlxPoint.weak();
+
 		degrees = degrees % 360;
 		if (degrees == 0)
 		{
+			newRect.set(x - innerOffset.x, y - innerOffset.y, width, height);
 			origin.putWeak();
-			return newRect.set(x, y, width, height);
+			innerOffset.putWeak();
+			return newRect;
 		}
-		
+
 		if (degrees < 0)
 			degrees += 360;
-		
+
 		var radians = FlxAngle.TO_RAD * degrees;
 		var cos = Math.cos(radians);
 		var sin = Math.sin(radians);
-		
-		var left = -origin.x;
-		var top = -origin.y;
-		var right = -origin.x + width;
-		var bottom = -origin.y + height;
+
+		var left = -origin.x - innerOffset.x;
+		var top = -origin.y - innerOffset.y;
+		var right = -origin.x + width - innerOffset.x;
+		var bottom = -origin.y + height - innerOffset.y;
 		if (degrees < 90)
 		{
 			newRect.x = x + origin.x + cos * left - sin * bottom;
@@ -378,7 +409,7 @@ class FlxRect implements IFlxPooled
 		else if (degrees < 180)
 		{
 			newRect.x = x + origin.x + cos * right - sin * bottom;
-			newRect.y = y + origin.y + sin * left  + cos * bottom;
+			newRect.y = y + origin.y + sin * left + cos * bottom;
 		}
 		else if (degrees < 270)
 		{
@@ -391,11 +422,12 @@ class FlxRect implements IFlxPooled
 			newRect.y = y + origin.y + sin * right + cos * top;
 		}
 		// temp var, in case input rect is the output rect
-		var newHeight = Math.abs(cos * height) + Math.abs(sin * width );
-		newRect.width = Math.abs(cos * width ) + Math.abs(sin * height);
+		var newHeight = Math.abs(cos * height) + Math.abs(sin * width);
+		newRect.width = Math.abs(cos * width) + Math.abs(sin * height);
 		newRect.height = newHeight;
-		
+
 		origin.putWeak();
+		innerOffset.putWeak();
 		return newRect;
 	}
 
@@ -447,6 +479,20 @@ class FlxRect implements IFlxPooled
 
 		rect.putWeak();
 		return result.set(x0, y0, x1 - x0, y1 - y0);
+	}
+
+	/**
+	 * The middle point of this rect
+	 *
+	 * @param   point  The point to hold the result, if `null` a new one is created
+	 * @since 5.9.0
+	 */
+	public function getMidpoint(?point:FlxPoint)
+	{
+		if (point == null)
+			point = FlxPoint.get();
+
+		return point.set(x + 0.5 * width, y + 0.5 * height);
 	}
 
 	/**

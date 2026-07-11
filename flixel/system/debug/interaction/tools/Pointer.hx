@@ -1,8 +1,8 @@
 package flixel.system.debug.interaction.tools;
 
-import flash.display.BitmapData;
-import flash.display.Graphics;
-import flash.ui.Keyboard;
+import openfl.display.BitmapData;
+import openfl.display.Graphics;
+import openfl.ui.Keyboard;
 import flixel.FlxBasic;
 import flixel.math.FlxPoint;
 import flixel.math.FlxRect;
@@ -11,7 +11,7 @@ import flixel.util.FlxSpriteUtil;
 
 using flixel.util.FlxArrayUtil;
 
-@:bitmap("assets/images/debugger/cursorCross.png")
+#if FLX_DEBUG @:bitmap("assets/images/debugger/cursorCross.png") #end
 class GraphicCursorCross extends BitmapData {}
 
 /**

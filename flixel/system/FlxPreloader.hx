@@ -1,19 +1,19 @@
 package flixel.system;
 
-import flash.display.Bitmap;
-import flash.display.BitmapData;
-import flash.display.BlendMode;
-import flash.display.Sprite;
-import flash.Lib;
-import flash.text.TextField;
-import flash.text.TextFormat;
+import openfl.display.Bitmap;
+import openfl.display.BitmapData;
+import openfl.display.BlendMode;
+import openfl.display.Sprite;
+import openfl.Lib;
+import openfl.text.TextField;
+import openfl.text.TextFormat;
 import flixel.FlxG;
 
 @:keep @:bitmap("assets/images/preloader/light.png")
-private class GraphicLogoLight extends BitmapData {}
+class GraphicLogoLight extends BitmapData {}
 
 @:keep @:bitmap("assets/images/preloader/corners.png")
-private class GraphicLogoCorners extends BitmapData {}
+class GraphicLogoCorners extends BitmapData {}
 
 /**
  * This is the Default HaxeFlixel Themed Preloader

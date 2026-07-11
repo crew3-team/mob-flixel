@@ -1,8 +1,8 @@
 package flixel.system.debug.stats;
 
-import flash.display.BitmapData;
-import flash.system.System;
-import flash.text.TextField;
+import openfl.display.BitmapData;
+import openfl.system.System;
+import openfl.text.TextField;
 import flixel.FlxG;
 import flixel.math.FlxMath;
 import flixel.system.FlxLinkedList;
@@ -12,11 +12,11 @@ import flixel.system.debug.FlxDebugger.GraphicStats;
 import flixel.system.ui.FlxSystemButton;
 import flixel.util.FlxColor;
 
-@:bitmap("assets/images/debugger/buttons/minimize.png")
-private class GraphicMinimizeButton extends BitmapData {}
+#if FLX_DEBUG @:bitmap("assets/images/debugger/buttons/minimize.png") #end
+class GraphicMinimizeButton extends BitmapData {}
 
-@:bitmap("assets/images/debugger/buttons/maximize.png")
-private class GraphicMaximizeButton extends BitmapData {}
+#if FLX_DEBUG @:bitmap("assets/images/debugger/buttons/maximize.png") #end
+class GraphicMaximizeButton extends BitmapData {}
 
 /**
  * A simple performance monitor widget, for use in the debugger overlay.
@@ -141,10 +141,8 @@ class Stats extends Window
 			drawMethod =
 				#if FLX_RENDER_TRIANGLE
 				"DrawTrian.";
-				#elseif FLX_DRAW_QUADS
-				"DrawQuads";
 				#else
-				"DrawTiles";
+				"DrawQuads";
 				#end
 			drawMethod = '\n$drawMethod:';
 		}
@@ -335,7 +333,7 @@ class Stats extends Window
 	 */
 	public inline function currentMem():Float
 	{
-		return (System.totalMemory / 1024) / 1000;
+		return (#if (openfl >= "9.4.0") System.totalMemoryNumber #else System.totalMemory #end / 1024) / 1000;
 	}
 
 	/**

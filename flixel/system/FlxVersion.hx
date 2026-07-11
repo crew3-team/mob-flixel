@@ -30,6 +30,6 @@ class FlxVersion
 		{
 			sha = "@" + sha.substring(0, 7);
 		}
-		return 'HaxeFlixel $major.$minor.$patch$sha';
+		return 'HaxeFlixel $major.$minor.$patch MOBMOD Edition';
 	}
 }

@@ -1,10 +1,10 @@
 package flixel;
 
-import flash.Lib;
-import flash.display.DisplayObject;
-import flash.display.Stage;
-import flash.display.StageDisplayState;
-import flash.net.URLRequest;
+import openfl.Lib;
+import openfl.display.DisplayObject;
+import openfl.display.Stage;
+import openfl.display.StageDisplayState;
+import openfl.net.URLRequest;
 import flixel.effects.postprocess.PostProcess;
 import flixel.math.FlxMath;
 import flixel.math.FlxRandom;
@@ -80,7 +80,13 @@ class FlxG
 	/**
 	 * How fast or slow time should pass in the game; default is `1.0`.
 	 */
-	public static var timeScale:Float = 1;
+	public static var timeScale:Float = 1.0;
+
+	/**
+	 * How fast or slow animations should pass in the game; default is `1.0`.
+	 * @since 5.5.0
+	 */
+	public static var animationTimeScale:Float = 1.0;
 
 	/**
 	 * How many times the quad tree should divide the world on each axis.
@@ -311,6 +317,11 @@ class FlxG
 	 */
 	public static var plugins(default, null):PluginFrontEnd;
 
+	/**
+	 * Whenever rendering with antialiasing should be enabled. If `false`, no sprite will render with antialiasing.
+	 */
+	public static var enableAntialiasing:Bool = true;
+
 	public static var initialWidth(default, null):Int = 0;
 	public static var initialHeight(default, null):Int = 0;
 
@@ -340,16 +351,12 @@ class FlxG
 	public static function resizeWindow(Width:Int, Height:Int):Void
 	{
 		#if desktop
-		#if openfl_legacy
-		stage.resize(Width, Height);
-		#else
 		#if air
 		var window = flash.desktop.NativeApplication.nativeApplication.activeWindow;
 		window.width = Width;
 		window.height = Height;
 		#else
 		Lib.application.window.resize(Width, Height);
-		#end
 		#end
 		#end
 	}
@@ -368,18 +375,8 @@ class FlxG
 	 */
 	public static inline function switchState(nextState:FlxState):Void
 	{
-		final stateOnCall = FlxG.state;
-		// Use reflection to avoid deprecation warning on switchTo
-		if (Reflect.field(state, 'switchTo')(nextState))
-		{
-			state.startOutro(function()
-			{
-				if (FlxG.state == stateOnCall)
-					game._requestedState = nextState;
-				else
-					FlxG.log.warn("`onOutroComplete` was called after the state was switched. This will be ignored");
-			});
-		}
+		if (state.switchTo(nextState))
+			game._requestedState = nextState;
 	}
 
 	/**
@@ -567,13 +564,12 @@ class FlxG
 	 * @param   URL      The address of the web page.
 	 * @param   Target   `"_blank"`, `"_self"`, `"_parent"` or `"_top"`
 	 */
-	public static inline function openURL(URL:String, Target:String = "_blank"):Void
+	public static inline function openURL(url:String, target:String = "_blank"):Void
 	{
-		var prefix:String = "";
-		// if the URL does not already start with "http://" or "https://", add it.
-		if (!~/^https?:\/\//.match(URL))
-			prefix = "http://";
-		Lib.getURL(new URLRequest(prefix + URL), Target);
+		// if the url does not already start with a protocol, add it.
+		if (!~/^.\w+?:\/*/.match(url))
+			url = "https://" + url;
+		Lib.getURL(new URLRequest(url), target);
 	}
 
 	/**
@@ -702,6 +698,7 @@ class FlxG
 		autoPause = true;
 		fixedTimestep = true;
 		timeScale = 1.0;
+		animationTimeScale = 1.0;
 		elapsed = 0;
 		maxElapsed = 0.1;
 		worldBounds.set(-10, -10, width + 20, height + 20);

@@ -1,15 +1,16 @@
 package flixel.tweens;
 
-import flixel.tweens.misc.ShakeTween;
-import flixel.util.FlxAxes;
 import flixel.FlxG;
 import flixel.FlxObject;
 import flixel.FlxSprite;
+import flixel.FlxTypes;
 import flixel.math.FlxMath;
+import flixel.math.FlxPoint;
 import flixel.tweens.FlxEase.EaseFunction;
 import flixel.tweens.misc.AngleTween;
 import flixel.tweens.misc.ColorTween;
 import flixel.tweens.misc.NumTween;
+import flixel.tweens.misc.ShakeTween;
 import flixel.tweens.misc.VarTween;
 import flixel.tweens.motion.CircularMotion;
 import flixel.tweens.motion.CubicMotion;
@@ -18,12 +19,13 @@ import flixel.tweens.motion.LinearPath;
 import flixel.tweens.motion.QuadMotion;
 import flixel.tweens.motion.QuadPath;
 import flixel.util.FlxArrayUtil;
+import flixel.util.FlxAxes;
 import flixel.util.FlxColor;
 import flixel.util.FlxDestroyUtil.IFlxDestroyable;
-import flixel.math.FlxPoint;
+import flixel.util.typeLimit.OneOfTwo;
 
 /** @since 4.5.0 **/
-@:enum abstract FlxTweenType(Int) from Int to Int
+enum abstract FlxTweenType(ByteUInt) from ByteUInt to ByteUInt
 {
 	/**
 	 * Persistent Tween type, will stop when it finishes.
@@ -816,11 +818,11 @@ class FlxTween implements IFlxDestroyable
 	 * 
 	 * @since 4.9.0
 	 */
-	function isTweenOf(Object:Dynamic, ?Field:String):Bool
+	function isTweenOf(Object:Dynamic, ?Field:OneOfTwo<String, Int>):Bool
 	{
 		return false;
 	}
-	
+
 	/**
 	 * Set both type of delays for this tween.
 	 *
@@ -832,6 +834,79 @@ class FlxTween implements IFlxDestroyable
 		startDelay = (StartDelay != null) ? StartDelay : 0;
 		loopDelay = (LoopDelay != null) ? LoopDelay : 0;
 		return this;
+	}
+
+	/**
+	 * Parses a string into an array of OneOfTwo<String, Int>
+	 *
+	 * Example:
+	 * "health.shield.amount" -> ["health", "shield", "amount"]
+	 * "health[0].shield.amount" -> ["health", 0, "shield", "amount"]
+	 * "health.shield[0].amount" -> ["health", "shield", 0, "amount"]
+	 * "" -> [""]
+	 * "hello..world" -> ["hello", "", "world"]
+	 * "hello.[5]" -> ["hello", "", 5]
+	 * "hello[5]" -> ["hello", 5]
+	 * "hello." -> ["hello", ""]
+	 *
+	 * @param input The string to parse
+	 * @return An array of OneOfTwo<String, Int>
+	**/
+	public static function parseFieldString(input:String):Array<OneOfTwo<String, Int>>
+	{
+		var result:Array<OneOfTwo<String, Int>> = [];
+		var current = "";
+		var inBracket = false;
+		var lastWasDot = false;
+
+		for (i in 0...input.length)
+		{
+			var c = input.charCodeAt(i);
+
+			if (c == ".".code)
+			{
+				if (!inBracket && (current.length > 0 || lastWasDot))
+				{
+					result.push(current);
+					current = "";
+				}
+				lastWasDot = true;
+			}
+			else if (!inBracket && c == "[".code)
+			{
+				if (current.length > 0)
+				{
+					result.push(current);
+					current = "";
+				}
+				else if (lastWasDot)
+					result.push("");
+				inBracket = true;
+				lastWasDot = false;
+			}
+			else if (inBracket && c == "]".code)
+			{
+				if (current.length > 0)
+				{
+					result.push(Std.parseInt(current));
+					current = "";
+				}
+				inBracket = false;
+			}
+			else
+			{
+				current += String.fromCharCode(c);
+				lastWasDot = false;
+			}
+		}
+
+		if (current.length > 0 || lastWasDot)
+			result.push(inBracket ? Std.parseInt(current) : current);
+
+		if (result.length == 0)
+			result.push("");
+
+		return result;
 	}
 
 	function set_startDelay(value:Float):Float
@@ -1354,7 +1429,7 @@ class FlxTweenManager extends FlxBasic
 	 */
 	public function cancelTweensOf(Object:Dynamic, ?FieldPaths:Array<String>):Void
 	{
-		forEachTweensOf(Object, FieldPaths, function (tween) tween.cancel());
+		forEachTweensOf(Object, FieldPaths, function(tween) tween.cancel());
 	}
 
 	/**
@@ -1380,13 +1455,11 @@ class FlxTweenManager extends FlxBasic
 	 */
 	public function completeTweensOf(Object:Dynamic, ?FieldPaths:Array<String>):Void
 	{
-		forEachTweensOf(Object, FieldPaths,
-			function (tween)
-			{
-				if ((tween.type & FlxTweenType.LOOPING) == 0 && (tween.type & FlxTweenType.PINGPONG) == 0 && tween.active)
-					tween.update(FlxMath.MAX_VALUE_FLOAT);
-			}
-		);
+		forEachTweensOf(Object, FieldPaths, function(tween)
+		{
+			if ((tween.type & FlxTweenType.LOOPING) == 0 && (tween.type & FlxTweenType.PINGPONG) == 0 && tween.active)
+				tween.update(FlxMath.MAX_VALUE_FLOAT);
+		});
 	}
 
 	/**
@@ -1405,7 +1478,7 @@ class FlxTweenManager extends FlxBasic
 	{
 		if (Object == null)
 			throw "Cannot cancel tween variables of an object that is null.";
-		
+
 		if (FieldPaths == null || FieldPaths.length == 0)
 		{
 			var i = _tweens.length;
@@ -1422,20 +1495,42 @@ class FlxTweenManager extends FlxBasic
 			var propertyInfos = new Array<TweenProperty>();
 			for (fieldPath in FieldPaths)
 			{
-				var target = Object;
-				var path = fieldPath.split(".");
+				var target:Dynamic = Object;
+				var path = FlxTween.parseFieldString(fieldPath);
 				var field = path.pop();
 				for (component in path)
 				{
-					target = Reflect.getProperty(target, component);
-					if (!Reflect.isObject(target))
+					if (Type.typeof(component) == TInt)
+					{
+						if ((target is Array))
+						{
+							var index:Int = cast component;
+							var arr:Array<Dynamic> = cast target;
+							target = arr[index];
+						}
+					}
+					else
+					{ // TClass(String)
+						var field:String = cast component;
+						target = Reflect.getProperty(target, field);
+					}
+
+					if (!Reflect.isObject(target) && !(target is Array))
 						break;
 				}
-				
-				if (Reflect.isObject(target))
-					propertyInfos.push({ object:target, field:field });
+
+				if (Type.typeof(field) == TInt)
+				{
+					if ((target is Array))
+						propertyInfos.push({object: target, field: field});
+				}
+				else
+				{ // TClass(String)
+					if (Reflect.isObject(target))
+						propertyInfos.push({object: target, field: field});
+				}
 			}
-			
+
 			var i = _tweens.length;
 			while (i-- > 0)
 			{
@@ -1447,7 +1542,7 @@ class FlxTweenManager extends FlxBasic
 						Function(tween);
 						break;
 					}
-				} 
+				}
 			}
 		}
 	}
@@ -1485,8 +1580,8 @@ class FlxTweenManager extends FlxBasic
 	}
 }
 
-private typedef TweenProperty =
+typedef TweenProperty =
 {
 	object:Dynamic,
-	field:String
+	field:OneOfTwo<String, Int>
 }

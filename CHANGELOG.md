@@ -1,14 +1,10 @@
-5.3.0 (April 26, 2023)
+5.3.0 (TBD)
 ------------------------------
-#### Dependencies:
-- Dropped support for haxe 4.0 and 4.1, use 4.2.5 or higher
-
 #### New features:
 - `FlxAtlasFrames`: Add `addFrameOffset` and `addFramesOffsetByPrefix` ([#2746](https://github.com/HaxeFlixel/flixel/pull/2746))
 - `FlxFrame`: Add `duration` ([#2752](https://github.com/HaxeFlixel/flixel/pull/2752))
 	- `FlxAtlasFrames`: Add `setFrameDuration` and `setFramesDurationByPrefix`
 	- `FlxAtlasFrames`: Add `fromAseprite` which takes Aseprite generated Json, and honors frame duration
-- `FlxState`: Add `startOutro`, deprecate `switchTo` ([#2768](https://github.com/HaxeFlixel/flixel/pull/2768))
 
 #### Changes and improvements:
 - `FlxSound` and `FlxSoundGroup`: Moved to the `flixel.sound` package, deprecate old package ([#2726](https://github.com/HaxeFlixel/flixel/pull/2726))
@@ -18,16 +14,12 @@
 - `FlxAnimation`: Deprecate `delay` in favor of the new `frameDuration` field ([#2752](https://github.com/HaxeFlixel/flixel/pull/2752))
 - `FlxAnimation` and `FlxColor`: Small fixes ([#2755](https://github.com/HaxeFlixel/flixel/pull/2755))
 - `FlxSound`: Fix doc comment ([#2767](https://github.com/HaxeFlixel/flixel/pull/2767))
-- `FlxSprite`: Better warnings for invalid `width`/`height` args on `loadGraphic` ([#2762](https://github.com/HaxeFlixel/flixel/pull/2762))
-- `FlxCamera`: Allow `followLerp` to be used with `NO_DEAD_ZONE` ([#2771](https://github.com/HaxeFlixel/flixel/pull/2771))
-- Improve docs ([#2777](https://github.com/HaxeFlixel/flixel/pull/2777)) ([#2778](https://github.com/HaxeFlixel/flixel/pull/2778))
+- `FlxSprite`: Better warnings for invalid `width`/`height` args on `loadGraphic` ([2762](https://github.com/HaxeFlixel/flixel/pull/2762))
 
 #### Bugfixes:
 - `FlxSave`: Fixed issue with `mergeDataFrom` where `overwrite = true` ([#2738](https://github.com/HaxeFlixel/flixel/pull/2738))
 - `FlxText`: Fix `embedFonts` getter ([#2749](https://github.com/HaxeFlixel/flixel/pull/2749))
 - `DebugFrontEnd`: Fixed freezing bug when pressing tab on debug ([2760](https://github.com/HaxeFlixel/flixel/pull/2760))
-- `LogFrontEnd`: Fixed null crashes when logging before `FlxGame` in created ([2779](https://github.com/HaxeFlixel/flixel/pull/2779))
-- `FlxSave`: Fixed saves with multiple invalid characters ([#2779](https://github.com/HaxeFlixel/flixel/pull/2779))
 
 5.2.2 (February 15, 2023)
 ------------------------------
@@ -45,7 +37,7 @@
 ------------------------------
 #### New features:
 - `FlxMouse`: added `deltaX`, `deltaY`, `deltaScreenX` and `deltaScreenY` ([#2709](https://github.com/HaxeFlixel/flixel/pull/2709))
-- `FlxCamera`: added public `view` and `viewMargin` properties, deprecated old, private viewOffset fields([#2714](https://github.com/HaxeFlixel/flixel/pull/2714))
+- `FlxCamera`: added public `view` and `viewMargin` properties, deprecated old, viewOffset fields([#2714](https://github.com/HaxeFlixel/flixel/pull/2714))
 
 #### Changes and improvements:
 - `FlxStrip`: allows shaders and color transforms ([#2696](https://github.com/HaxeFlixel/flixel/pull/2696))
@@ -106,7 +98,7 @@ The alpha was causing issues with CI due to haxelib issues. We're foregoing the 
 - `FlxTilemap`: Overhaul to pathfinding ([#2480](https://github.com/HaxeFlixel/flixel/pull/2480))
 	- `FlxPathfinder`: Allows customizable pathfinding algorithms for tilemap
 	- `FlxPathSimplifier`: Replace findPath simplify args with a new enum
-	- Expose previously private fields: `tileWidth`, `tileHeight`, `scaledTileWidth`, `scaledTileHeight`, `scaledWidth`, and `scaledHeight`
+	- Expose previously fields: `tileWidth`, `tileHeight`, `scaledTileWidth`, `scaledTileHeight`, `scaledWidth`, and `scaledHeight`
 	- `FlxBaseTilemap`: added `calcRayEntry` and `calcRayExit`
 - `FlxPath`: various new features
 	- added `immovable` bool (previously, objects were always immovable when following paths) ([#2480](https://github.com/HaxeFlixel/flixel/pull/2480))

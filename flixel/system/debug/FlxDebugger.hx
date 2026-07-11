@@ -1,13 +1,14 @@
 package flixel.system.debug;
 
-import flash.display.BitmapData;
-import flash.display.Sprite;
-import flash.events.MouseEvent;
-import flash.geom.Point;
-import flash.geom.Rectangle;
-import flash.text.TextField;
-import flash.text.TextFieldAutoSize;
-import flash.text.TextFormat;
+import openfl.display.BitmapData;
+import openfl.display.Sprite;
+#if FLX_DEBUG
+import openfl.events.MouseEvent;
+import openfl.geom.Point;
+import openfl.geom.Rectangle;
+import openfl.text.TextField;
+import openfl.text.TextFieldAutoSize;
+import openfl.text.TextFormat;
 import openfl.display.DisplayObject;
 import flixel.FlxG;
 import flixel.system.debug.console.Console;
@@ -23,45 +24,46 @@ import flixel.system.ui.FlxSystemButton;
 import flixel.util.FlxHorizontalAlign;
 
 using flixel.util.FlxArrayUtil;
+#end
 
-@:bitmap("assets/images/debugger/flixel.png")
-private class GraphicFlixel extends BitmapData {}
+#if FLX_DEBUG @:bitmap("assets/images/debugger/flixel.png") #end
+class GraphicFlixel extends BitmapData {}
 
-@:bitmap("assets/images/debugger/buttons/drawDebug.png")
-private class GraphicDrawDebug extends BitmapData {}
+#if FLX_DEBUG @:bitmap("assets/images/debugger/buttons/drawDebug.png") #end
+class GraphicDrawDebug extends BitmapData {}
 
-@:bitmap("assets/images/debugger/buttons/log.png")
+#if FLX_DEBUG @:bitmap("assets/images/debugger/buttons/log.png") #end
 @:noCompletion class GraphicLog extends BitmapData {}
 
-@:bitmap("assets/images/debugger/buttons/stats.png")
+#if FLX_DEBUG @:bitmap("assets/images/debugger/buttons/stats.png") #end
 @:noCompletion class GraphicStats extends BitmapData {}
 
-@:bitmap("assets/images/debugger/buttons/watch.png")
+#if FLX_DEBUG @:bitmap("assets/images/debugger/buttons/watch.png") #end
 @:noCompletion class GraphicWatch extends BitmapData {}
 
-@:bitmap("assets/images/debugger/buttons/bitmapLog.png")
+#if FLX_DEBUG @:bitmap("assets/images/debugger/buttons/bitmapLog.png") #end
 @:noCompletion class GraphicBitmapLog extends BitmapData {}
 
-@:bitmap("assets/images/debugger/buttons/console.png")
+#if FLX_DEBUG @:bitmap("assets/images/debugger/buttons/console.png") #end
 @:noCompletion class GraphicConsole extends BitmapData {}
 
-@:bitmap("assets/images/debugger/buttons/arrowLeft.png")
+#if FLX_DEBUG @:bitmap("assets/images/debugger/buttons/arrowLeft.png") #end
 @:noCompletion class GraphicArrowLeft extends BitmapData {}
 
-@:bitmap("assets/images/debugger/buttons/arrowRight.png")
+#if FLX_DEBUG @:bitmap("assets/images/debugger/buttons/arrowRight.png") #end
 @:noCompletion class GraphicArrowRight extends BitmapData {}
 
-@:bitmap("assets/images/debugger/buttons/close.png")
+#if FLX_DEBUG @:bitmap("assets/images/debugger/buttons/close.png") #end
 @:noCompletion class GraphicCloseButton extends BitmapData {}
 
-@:bitmap("assets/images/debugger/buttons/interactive.png")
+#if FLX_DEBUG @:bitmap("assets/images/debugger/buttons/interactive.png") #end
 @:noCompletion class GraphicInteractive extends BitmapData {}
 
 /**
  * Container for the new debugger overlay. Most of the functionality is in the debug folder widgets,
  * but this class instantiates the widgets and handles their basic formatting and arrangement.
  */
-class FlxDebugger extends Sprite
+class FlxDebugger extends openfl.display.Sprite
 {
 	#if FLX_DEBUG
 	/**
@@ -126,12 +128,19 @@ class FlxDebugger extends Sprite
 		visible = false;
 		tabChildren = false;
 
+		#if openfl_dpi_aware
+		scaleX = scaleY = FlxG.stage.window.scale;
+		#else
+		scaleX = scaleY = 1;
+		#end
+
 		Tooltip.init(this);
 
 		_topBar = new Sprite();
 		_topBar.graphics.beginFill(0x000000, 0xAA / 255);
-		_topBar.graphics.drawRect(0, 0, FlxG.stage.stageWidth, TOP_HEIGHT);
+		_topBar.graphics.drawRect(0, 0, 1, 1);
 		_topBar.graphics.endFill();
+		_topBar.height = TOP_HEIGHT;
 		addChild(_topBar);
 
 		var txt = new TextField();
@@ -325,14 +334,23 @@ class FlxDebugger extends Sprite
 
 	public function onResize(Width:Float, Height:Float):Void
 	{
+		#if openfl_dpi_aware
+		Width = Width / FlxG.stage.window.scale;
+		Height = Height / FlxG.stage.window.scale;
+		#end
+
 		_screen.x = Width;
 		_screen.y = Height;
 
 		updateBounds();
-		_topBar.width = FlxG.stage.stageWidth;
+		_topBar.width = Width;
 		resetButtonLayout();
 		resetLayout();
+		#if openfl_dpi_aware
+		scaleX = scaleY = FlxG.stage.window.scale;
+		#else
 		scaleX = scaleY = 1;
+		#end
 		x = -FlxG.scaleMode.offset.x;
 		y = -FlxG.scaleMode.offset.y;
 	}
@@ -373,10 +391,10 @@ class FlxDebugger extends Sprite
 	{
 		hAlignButtons(_buttons[FlxHorizontalAlign.LEFT], 10, true, 10);
 
-		var offset = FlxG.stage.stageWidth * 0.5 - hAlignButtons(_buttons[FlxHorizontalAlign.CENTER], 10, false) * 0.5;
+		var offset = FlxG.stage.stageWidth / scaleX * 0.5 - hAlignButtons(_buttons[FlxHorizontalAlign.CENTER], 10, false) * 0.5;
 		hAlignButtons(_buttons[FlxHorizontalAlign.CENTER], 10, true, offset);
 
-		var offset = FlxG.stage.stageWidth - hAlignButtons(_buttons[FlxHorizontalAlign.RIGHT], 10, false);
+		var offset = FlxG.stage.stageWidth / scaleX - hAlignButtons(_buttons[FlxHorizontalAlign.RIGHT], 10, false);
 		hAlignButtons(_buttons[FlxHorizontalAlign.RIGHT], 10, true, offset);
 	}
 
@@ -508,12 +526,12 @@ class FlxDebugger extends Sprite
 
 	inline function openHomepage():Void
 	{
-		FlxG.openURL("http://www.haxeflixel.com");
+		FlxG.openURL("http://haxeflixel.com");
 	}
 
 	inline function openGitHub():Void
 	{
-		var url = "https://github.com/HaxeFlixel/flixel";
+		var url = "https://github.com/FNF-CNE-Devs/flixel";
 		if (FlxVersion.sha != "")
 		{
 			url += '/commit/${FlxVersion.sha}';

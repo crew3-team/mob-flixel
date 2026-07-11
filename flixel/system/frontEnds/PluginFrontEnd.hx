@@ -5,6 +5,11 @@ import flixel.input.mouse.FlxMouseEventManager;
 import flixel.tweens.FlxTween;
 import flixel.util.FlxStringUtil;
 import flixel.util.FlxTimer;
+#if (haxe_ver >= 4.2)
+import Std.isOfType;
+#else
+import Std.is as isOfType;
+#end
 
 /**
  * Accessed via `FlxG.plugins`.
@@ -16,11 +21,13 @@ class PluginFrontEnd
 	 */
 	public var list(default, null):Array<FlxBasic> = [];
 
+	public var drawOnTop:Bool = false;
+
 	/**
 	 * Adds a new plugin to the global plugin array.
 	 *
-	 * @param	Plugin	Any object that extends FlxBasic. Useful for managers and other things.
-	 * @return	The same plugin you passed in.
+	 * @param	Plugin	Any object that extends FlxPlugin. Useful for managers and other things. See flixel.plugin for some examples!
+	 * @return	The same FlxPlugin-based plugin you passed in.
 	 */
 	@:generic
 	public function add<T:FlxBasic>(Plugin:T):T
@@ -49,7 +56,7 @@ class PluginFrontEnd
 	{
 		for (plugin in list)
 		{
-			if (Std.isOfType(plugin, ClassType))
+			if (isOfType(plugin, ClassType))
 			{
 				return cast plugin;
 			}
@@ -62,7 +69,7 @@ class PluginFrontEnd
 	 * Removes an instance of a plugin from the global plugin array.
 	 *
 	 * @param	Plugin	The plugin instance you want to remove.
-	 * @return	The same plugin you passed in.
+	 * @return	The same FlxPlugin-based plugin you passed in.
 	 */
 	public function remove<T:FlxBasic>(Plugin:T):T
 	{
@@ -96,7 +103,7 @@ class PluginFrontEnd
 
 		while (i >= 0)
 		{
-			if (Std.isOfType(list[i], ClassType))
+			if (isOfType(list[i], ClassType))
 			{
 				list.splice(i, 1);
 				results = true;

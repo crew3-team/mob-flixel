@@ -10,12 +10,17 @@ class FlxBaseAnimation implements IFlxDestroyable
 	/**
 	 * Animation controller this animation belongs to
 	 */
-	public var parent:FlxAnimationController;
+	public var parent(default, null):FlxAnimationController;
 
 	/**
 	 * String name of the animation (e.g. `"walk"`)
 	 */
 	public var name:String;
+
+	/**
+	 * Prefix of the anim if it was added using a prefix
+	 */
+	public var prefix:Null<String>;
 
 	/**
 	 * Keeps track of the current index into the tile sheet based on animation or rotation.
@@ -34,10 +39,11 @@ class FlxBaseAnimation implements IFlxDestroyable
 		return Value;
 	}
 
-	public function new(Parent:FlxAnimationController, Name:String)
+	public function new(Parent:FlxAnimationController, Name:String, ?Prefix:Null<String>)
 	{
 		parent = Parent;
 		name = Name;
+		prefix = Prefix;
 	}
 
 	public function destroy():Void

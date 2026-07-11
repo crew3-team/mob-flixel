@@ -1,8 +1,8 @@
 package flixel.ui;
 
-import flash.display.BitmapData;
-import flash.geom.Point;
-import flash.geom.Rectangle;
+import openfl.display.BitmapData;
+import openfl.geom.Point;
+import openfl.geom.Rectangle;
 import flixel.FlxG;
 import flixel.FlxSprite;
 import flixel.graphics.FlxGraphic;
@@ -55,6 +55,11 @@ class FlxBar extends FlxSprite
 	public var percent(get, set):Float;
 
 	/**
+	 * The percentage of how full the bar is (a value between 0 and 100)
+	 */
+	public var floorPercent(get, never):Int;
+
+	/**
 	 * The current value - must always be between min and max
 	 */
 	@:isVar
@@ -86,6 +91,11 @@ class FlxBar extends FlxSprite
 	 * @since 4.1.0
 	 */
 	public var numDivisions(default, set):Int = 100;
+
+	/**
+	 * Determines whenever numDivisions will make stuff blocky
+	 */
+	public var unbounded:Bool = false;
 
 	/**
 	 * This function will be called when value will hit it's minimum
@@ -200,21 +210,21 @@ class FlxBar extends FlxSprite
 
 		if (FlxG.renderBlit)
 		{
-			_frontFrame = null;
-			_filledFlxRect = FlxDestroyUtil.put(_filledFlxRect);
-		}
-		else
-		{
 			_emptyBarRect = null;
 			_zeroOffset = null;
 			_emptyBar = FlxDestroyUtil.dispose(_emptyBar);
 			_filledBar = FlxDestroyUtil.dispose(_filledBar);
 		}
+		else
+		{
+			_frontFrame = null;
+			_filledFlxRect = FlxDestroyUtil.put(_filledFlxRect);
+		}
 		_filledBarRect = null;
 		_filledBarPoint = null;
 
 		parent = null;
-		positionOffset = null;
+		positionOffset = FlxDestroyUtil.put(positionOffset);
 		emptyCallback = null;
 		filledCallback = null;
 
@@ -754,15 +764,15 @@ class FlxBar extends FlxSprite
 		var percent:Float = fraction * _maxPercent;
 		var maxScale:Float = (_fillHorizontal) ? barWidth : barHeight;
 		var scaleInterval:Float = maxScale / numDivisions;
-		var interval:Float = Math.round(Std.int(fraction * maxScale / scaleInterval) * scaleInterval);
+		var interval:Float = unbounded ? fraction * maxScale : Math.round(Std.int(fraction * maxScale / scaleInterval) * scaleInterval);
 
 		if (_fillHorizontal)
 		{
-			_filledBarRect.width = Std.int(interval);
+			_filledBarRect.width = floorFunc(interval);
 		}
 		else
 		{
-			_filledBarRect.height = Std.int(interval);
+			_filledBarRect.height = floorFunc(interval);
 		}
 
 		if (percent > 0)
@@ -770,7 +780,7 @@ class FlxBar extends FlxSprite
 			switch (fillDirection)
 			{
 				case LEFT_TO_RIGHT, TOP_TO_BOTTOM:
-				//	Already handled above
+					//	Already handled above
 
 				case BOTTOM_TO_TOP:
 					_filledBarRect.y = barHeight - _filledBarRect.height;
@@ -781,20 +791,20 @@ class FlxBar extends FlxSprite
 					_filledBarPoint.x = barWidth - _filledBarRect.width;
 
 				case HORIZONTAL_INSIDE_OUT:
-					_filledBarRect.x = Std.int((barWidth / 2) - (_filledBarRect.width / 2));
-					_filledBarPoint.x = Std.int((barWidth / 2) - (_filledBarRect.width / 2));
+					_filledBarRect.x = floorFunc((barWidth / 2) - (_filledBarRect.width / 2));
+					_filledBarPoint.x = floorFunc((barWidth / 2) - (_filledBarRect.width / 2));
 
 				case HORIZONTAL_OUTSIDE_IN:
-					_filledBarRect.width = Std.int(maxScale - interval);
-					_filledBarPoint.x = Std.int((barWidth - _filledBarRect.width) / 2);
+					_filledBarRect.width = floorFunc(maxScale - interval);
+					_filledBarPoint.x = floorFunc((barWidth - _filledBarRect.width) / 2);
 
 				case VERTICAL_INSIDE_OUT:
-					_filledBarRect.y = Std.int((barHeight / 2) - (_filledBarRect.height / 2));
-					_filledBarPoint.y = Std.int((barHeight / 2) - (_filledBarRect.height / 2));
+					_filledBarRect.y = floorFunc((barHeight / 2) - (_filledBarRect.height / 2));
+					_filledBarPoint.y = floorFunc((barHeight / 2) - (_filledBarRect.height / 2));
 
 				case VERTICAL_OUTSIDE_IN:
-					_filledBarRect.height = Std.int(maxScale - interval);
-					_filledBarPoint.y = Std.int((barHeight - _filledBarRect.height) / 2);
+					_filledBarRect.height = floorFunc(maxScale - interval);
+					_filledBarPoint.y = floorFunc((barHeight - _filledBarRect.height) / 2);
 			}
 
 			if (FlxG.renderBlit)
@@ -805,8 +815,8 @@ class FlxBar extends FlxSprite
 			{
 				if (frontFrames != null)
 				{
-					_filledFlxRect.copyFromFlash(_filledBarRect).round();
-					if (Std.int(percent) > 0)
+					_filledFlxRect.copyFromFlash(_filledBarRect); // .round();
+					if (percent > 0)
 					{
 						_frontFrame = frontFrames.frame.clipTo(_filledFlxRect, _frontFrame);
 					}
@@ -858,26 +868,29 @@ class FlxBar extends FlxSprite
 					continue;
 				}
 
-				getScreenPosition(_point, camera).subtractPoint(offset);
-
-				_frontFrame.prepareMatrix(_matrix, FlxFrameAngle.ANGLE_0, flipX, flipY);
+				_frontFrame.prepareMatrix(_matrix, FlxFrameAngle.ANGLE_0, checkFlipX(), checkFlipY());
 				_matrix.translate(-origin.x, -origin.y);
 				_matrix.scale(scale.x, scale.y);
 
 				// rotate matrix if sprite's graphic isn't prerotated
-				if (angle != 0)
+				if (bakedRotationAngle <= 0)
 				{
-					_matrix.rotateWithTrig(_cosAngle, _sinAngle);
+					updateTrig();
+
+					if (angle != 0)
+						_matrix.rotateWithTrig(_cosAngle, _sinAngle);
 				}
 
+				getScreenPosition(_point, camera).subtractPoint(offset);
 				_point.add(origin.x, origin.y);
+				_matrix.translate(_point.x, _point.y);
 				if (isPixelPerfectRender(camera))
 				{
-					_point.floor();
+					_matrix.tx = Math.floor(_matrix.tx);
+					_matrix.ty = Math.floor(_matrix.ty);
 				}
 
-				_matrix.translate(_point.x, _point.y);
-				camera.drawPixels(_frontFrame, _matrix, colorTransform, blend, antialiasing, shader);
+				camera.drawPixels(_frontFrame, _matrix, colorTransform, blend, antialiasing, shaderEnabled ? shader : null);
 			}
 		}
 	}
@@ -907,6 +920,16 @@ class FlxBar extends FlxSprite
 	}
 
 	function get_percent():Float
+	{
+		if (value > max)
+		{
+			return _maxPercent;
+		}
+
+		return ((value - min) / range) * _maxPercent;
+	}
+
+	function get_floorPercent():Int
 	{
 		if (value > max)
 		{
@@ -1010,6 +1033,13 @@ class FlxBar extends FlxSprite
 			createImageEmptyBar(value.frame.paint());
 		}
 		return value;
+	}
+
+	function floorFunc(x:Float):Float
+	{
+		if (unbounded)
+			return x;
+		return Std.int(x);
 	}
 }
 

@@ -1,7 +1,7 @@
 package flixel.util;
 
-import flash.display.BitmapData;
-import flash.geom.Rectangle;
+import openfl.display.BitmapData;
+import openfl.geom.Rectangle;
 
 /**
  * BitmapData pool class.
@@ -153,7 +153,7 @@ class FlxBitmapDataPool
 	}
 }
 
-private class FlxBitmapDataPoolNode
+class FlxBitmapDataPoolNode
 {
 	public var bmd:BitmapData;
 	public var prev:FlxBitmapDataPoolNode;
