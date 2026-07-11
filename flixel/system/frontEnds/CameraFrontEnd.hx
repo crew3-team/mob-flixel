@@ -119,11 +119,11 @@ class CameraFrontEnd
 	 * @param value  If false, FlxBasics will not render to it unless you add it to their `cameras` list.
 	 * @since 4.9.0
 	 */
-	public function setDefaultDrawTarget(camera:FlxCamera, value:Bool)
+	public function addDefaultDrawTarget(camera:FlxCamera, value:Bool)
 	{
 		if (!list.contains(camera))
 		{
-			FlxG.log.warn("FlxG.cameras.setDefaultDrawTarget(): The specified camera is not a part of the game.");
+			FlxG.log.warn("FlxG.cameras.addDefaultDrawTarget(): The specified camera is not a part of the game.");
 			return;
 		}
 
@@ -133,6 +133,15 @@ class CameraFrontEnd
 			defaults.push(camera);
 		else if (!value)
 			defaults.splice(index, 1);
+	}
+
+	/**
+	 * `addDefaultDrawTarget(camera, true);`
+	 * @param camera 
+	 */
+	public function setDefaultDrawTarget(camera:FlxCamera)
+	{
+		addDefaultDrawTarget(camera, true);
 	}
 
 	/**
