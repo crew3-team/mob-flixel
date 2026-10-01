@@ -1366,7 +1366,7 @@ class FlxTextFormat
 	}
 }
 
-private class FlxTextFormatRange
+class FlxTextFormatRange
 {
 	public var range(default, null):FlxRange<Int>;
 	public var format(default, null):FlxTextFormat;
