@@ -914,7 +914,7 @@ class FlxText extends FlxSprite
 				borderWidth += Math.abs(offsetX);
 				borderHeight += Math.abs(offsetY);
 
-			case OUTLINE_FAST | OUTLINE:
+			case OUTLINE_FAST | OUTLINE | OUTLINE_MINECRAFT:
 				borderWidth += Math.abs(borderSize) * 2;
 				borderHeight += Math.abs(borderSize) * 2;
 
@@ -1120,10 +1120,10 @@ class FlxText extends FlxSprite
 				_graphicOffset.x = offsetX < 0 ? -offsetX : 0;
 				_graphicOffset.y = offsetY < 0 ? -offsetY : 0;
 			
-			case OUTLINE_FAST | OUTLINE if (borderSize < 0):
+			case OUTLINE_FAST | OUTLINE | OUTLINE_MINECRAFT if (borderSize < 0):
 				_graphicOffset.set(-borderSize, -borderSize);
 			
-			case NONE | OUTLINE_FAST | OUTLINE:
+			case NONE | OUTLINE_FAST | OUTLINE | OUTLINE_MINECRAFT:
 				_graphicOffset.set(0, 0);
 		}
 		_matrix.translate(_graphicOffset.x, _graphicOffset.y);
@@ -1199,6 +1199,30 @@ class FlxText extends FlxSprite
 					copyTextWithOffset(0, -curDelta); // lower-left
 					
 					_matrix.translate(curDelta, 0); // return to center
+				}
+
+			case OUTLINE_MINECRAFT:
+				// Render an outline around the text
+				// (do 4 non diagonal offset draw calls)
+				// (im doing this for our minecraft usecase LOL)
+				applyFormats(_formatAdjusted, true);
+
+				var graphic:BitmapData = _hasBorderAlpha ? _borderPixels : graphic.bitmap;
+				final iterations = FlxMath.maxInt(1, Std.int(borderSize * borderQuality));
+				var i = iterations + 1;
+				while (i-- > 1)
+				{
+					final curDelta = borderSize / iterations * i;
+					_matrix.translate(-curDelta, 0); // left
+					drawTextFieldTo(graphic);
+					_matrix.translate(curDelta * 2, 0); // right
+					drawTextFieldTo(graphic);
+					_matrix.translate(-curDelta, -curDelta); // UP (back to the center of x and up lol)
+					drawTextFieldTo(graphic);
+					_matrix.translate(0, curDelta * 2); // down
+					drawTextFieldTo(graphic);
+
+					_matrix.translate(0, -curDelta); // return to center
 				}
 			
 			case OUTLINE_FAST:
@@ -1409,6 +1433,11 @@ enum FlxTextBorderStyle
 	 * Outline on all 8 sides
 	 */
 	OUTLINE;
+
+	/**
+	 * Outline on 4 sides (TOP, LEFT, RIGHT, DOWN)
+	 */
+	OUTLINE_MINECRAFT;
 	
 	/**
 	 * Outline, optimized using only 4 draw calls
