@@ -1,6 +1,8 @@
 package flixel.animation;
 
 import flixel.FlxG;
+import flixel.util.FlxDestroyUtil;
+import flixel.util.FlxSignal.FlxTypedSignal;
 
 /**
  * Just a helper structure for the `FlxSprite` animation system.
@@ -86,6 +88,10 @@ class FlxAnimation extends FlxBaseAnimation
 	 */
 	var _frameTimer:Float = 0;
 
+	public var onFinish:FlxTypedSignal<Void->Void> = new FlxTypedSignal();
+	public var onPlay:FlxTypedSignal<String->Bool->Bool->Int->Void> = new FlxTypedSignal();
+	public var onLoop:FlxTypedSignal<Void->Void> = new FlxTypedSignal();
+
 	/**
 	 * @param   name        What this animation should be called (e.g. `"run"`).
 	 * @param   frames      An array of numbers indicating what frames to play in what order (e.g. `[1, 2, 3]`).
@@ -110,6 +116,9 @@ class FlxAnimation extends FlxBaseAnimation
 	 */
 	override public function destroy():Void
 	{
+		FlxDestroyUtil.destroy(onFinish);
+		FlxDestroyUtil.destroy(onPlay);
+		FlxDestroyUtil.destroy(onLoop);
 		frames = null;
 		name = null;
 		super.destroy();
@@ -151,8 +160,13 @@ class FlxAnimation extends FlxBaseAnimation
 			curFrame = Frame;
 		}
 
-		if (finished)
+		if (finished) {
+			onFinish.dispatch();
 			parent.fireFinishCallback(name);
+		}
+
+		parent.firePlayCallback(name, Force, Reversed, curFrame);
+		onPlay.dispatch(name, Force, Reversed, curFrame);
 	}
 
 	public function restart():Void
@@ -211,6 +225,7 @@ class FlxAnimation extends FlxBaseAnimation
 				{
 					curFrame = numFrames - 1;
 					parent.fireLoopCallback(name);
+					onLoop.dispatch();
 				}
 				else
 				{
@@ -223,6 +238,7 @@ class FlxAnimation extends FlxBaseAnimation
 				{
 					curFrame = loopPoint;
 					parent.fireLoopCallback(name);
+					onLoop.dispatch();
 				}
 				else
 				{
@@ -278,8 +294,12 @@ class FlxAnimation extends FlxBaseAnimation
 
 		curIndex = frames[curFrame];
 
-		if (finished && parent != null)
-			parent.fireFinishCallback(name);
+		if (finished)
+		{
+			onFinish.dispatch();
+			if (parent != null)
+				parent.fireFinishCallback(name);
+		}
 
 		return frame;
 	}

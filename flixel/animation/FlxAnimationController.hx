@@ -65,6 +65,18 @@ class FlxAnimationController implements IFlxDestroyable
 	 */
 	@:deprecated('finishCallback is deprecated, use onFinish.add') // 5.9.0
 	public var finishCallback:(animName:String) -> Void;
+
+	/**
+	 * If assigned, will be called each time the current animation is played.
+	 */
+	@:deprecated('playCallback is deprecated, use onPlay.add')
+	public var playCallback:(name:String, forced:Bool, reversed:Bool, frame:Int) -> Void;
+
+	/**
+	 * If assigned, will be called each time the current animation loops.
+	 */
+	@:deprecated('loopCallback is deprecated, use onLoop.add')
+	public var loopCallback:(animName:String) -> Void;
 	
 	/**
 	 * Dispatches each time the current animation's frame changes
@@ -83,15 +95,26 @@ class FlxAnimationController implements IFlxDestroyable
 	 * @since 5.9.0
 	 */
 	public final onFinish = new FlxTypedSignal<(animName:String)->Void>();
-	
+
+	/**
+	 * Dispatches each time the current animation is played.
+	 *
+	 * @param   animName     The name of the current animation
+	 * @param   forced       Whether the animation was forced to play
+	 * @param   reversed     Whether the animation was played in reverse
+	 * @param   frame        The current animation's frameIndex in the tile sheet
+	 * @since 5.9.0
+	 */
+	public final onPlay = new FlxTypedSignal<(animName:String, forced:Bool, reversed:Bool, frame:Int) -> Void>();
+
 	/**
 	 * Dispatches each time the current animation's loop is complete.
 	 * Works only with looped animations.
-	 * 
+	 *
 	 * @param   animName  The name of the current animation
 	 * @since 5.9.0
 	 */
-	public final onLoop = new FlxTypedSignal<(animName:String)->Void>();
+	public final onLoop = new FlxTypedSignal<(animName:String) -> Void>();
 	
 	/**
 	 * How fast or slow time should pass for this animation controller
@@ -176,12 +199,15 @@ class FlxAnimationController implements IFlxDestroyable
 	{
 		FlxDestroyUtil.destroy(onFrameChange);
 		FlxDestroyUtil.destroy(onFinish);
+		FlxDestroyUtil.destroy(onPlay);
 		FlxDestroyUtil.destroy(onLoop);
 
 		destroyAnimations();
 		_animations = null;
 		callback = null;
 		finishCallback = null;
+		playCallback = null;
+		loopCallback = null;
 		_sprite = null;
 	}
 
@@ -727,8 +753,24 @@ class FlxAnimationController implements IFlxDestroyable
 	}
 
 	@:allow(flixel.animation)
+	inline function firePlayCallback(name:String, forced:Bool, reversed:Bool, frame:Int):Void
+	{
+		if (playCallback != null)
+		{
+			playCallback(name, forced, reversed, frame);
+		}
+
+		onPlay.dispatch(name, forced, reversed, frame);
+	}
+
+	@:allow(flixel.animation)
 	function fireLoopCallback(?name:String):Void
 	{
+		if (loopCallback != null)
+		{
+			loopCallback(name);
+		}
+
 		onLoop.dispatch(name);
 	}
 
