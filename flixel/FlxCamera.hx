@@ -1136,6 +1136,8 @@ class FlxCamera extends FlxBasic
 		super.destroy();
 	}
 
+	public var paused(get, set):Bool;
+
 	/**
 	 * Updates the camera scroll as well as special effects like screen-shake or fades.
 	 */
@@ -2081,6 +2083,17 @@ class FlxCamera extends FlxBasic
 	public inline function containsRect(rect:FlxRect):Bool
 	{
 		return __get__bounds().overlaps(rect);
+	}
+
+	function set_paused(v:Bool):Bool
+	{
+		fxActive = followActive = !v;
+		return v;
+	}
+
+	function get_paused():Bool
+	{
+		return followActive;
 	}
 
 	function set_width(Value:Int):Int
