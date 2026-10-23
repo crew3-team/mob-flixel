@@ -8,7 +8,7 @@ import flixel.util.FlxStringUtil;
  * This is a useful "generic" Flixel object. Both `FlxObject` and
  * `FlxGroup` extend this class. Has no size, position or graphical data.
  */
-class FlxBasic implements IFlxDestroyable
+class FlxBasic implements IFlxBasic
 {
 	#if FLX_DEBUG
 	/**
@@ -252,7 +252,7 @@ enum abstract FlxType(Int)
 	var SPRITEGROUP = 4;
 }
 
-interface IFlxBasic
+interface IFlxBasic extends IFlxDestroyable
 {
 	var ID:Int;
 	var active(default, set):Bool;
@@ -262,7 +262,6 @@ interface IFlxBasic
 
 	function draw():Void;
 	function update(elapsed:Float):Void;
-	function destroy():Void;
 
 	function kill():Void;
 	function revive():Void;
